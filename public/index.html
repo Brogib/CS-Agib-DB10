@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SBD Store</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/catalog" data-link>
+        <span class="brand-mark">S</span>
+        <span>SBD Store</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="/catalog" data-link data-nav="catalog">Catalog</a>
+        <a href="/login" data-link data-nav="login">Login</a>
+        <a href="/register" data-link data-nav="register">Register</a>
+        <a href="/profile" data-link data-nav="profile">Account</a>
+      </nav>
+
+      <div class="session-chip" id="sessionChip">Guest</div>
+    </header>
+
+    <main id="app" class="page" tabindex="-1"></main>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
