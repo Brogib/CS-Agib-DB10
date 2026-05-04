@@ -35,6 +35,8 @@ function clearSession() {
 
 function routeName(pathname = window.location.pathname) {
   if (pathname === '/' || pathname === '/catalog') return 'catalog';
+  if (/^\/catalog\/[^/]+$/.test(pathname)) return 'item-detail';
+  if (pathname === '/reports') return 'reports';
   if (pathname === '/login') return 'login';
   if (pathname === '/register') return 'register';
   if (pathname === '/profile') return 'profile';
@@ -102,6 +104,11 @@ function itemInitials(name) {
     .join('');
 }
 
+function itemIdFromPath() {
+  const id = window.location.pathname.split('/').filter(Boolean).at(-1);
+  return Number(id);
+}
+
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add('show');
@@ -110,8 +117,10 @@ function showToast(message) {
 }
 
 function updateChrome(activeRoute) {
+  const navRoute = activeRoute === 'item-detail' ? 'catalog' : activeRoute;
+
   document.querySelectorAll('[data-nav]').forEach((link) => {
-    link.classList.toggle('active', link.dataset.nav === activeRoute);
+    link.classList.toggle('active', link.dataset.nav === navRoute);
   });
 
   sessionChip.textContent = state.user
@@ -297,7 +306,7 @@ async function renderCatalog(force = false) {
   }
 
   const cards = items.map((item) => `
-    <article class="item-card">
+    <a class="item-card" href="/catalog/${Number(item.id)}" data-link aria-label="View ${escapeHtml(item.name)} details">
       <div class="item-art" aria-hidden="true">
         <span class="item-initials">${escapeHtml(itemInitials(item.name))}</span>
       </div>
@@ -309,10 +318,202 @@ async function renderCatalog(force = false) {
           <span class="badge">ID ${Number(item.id)}</span>
         </div>
       </div>
-    </article>
+    </a>
   `).join('');
 
   renderCatalogShell(`<div class="grid">${cards}</div>`, meta);
+}
+
+function renderItemDetailShell(content) {
+  app.innerHTML = `
+    <section>
+      <div class="section-head">
+        <div>
+          <p class="kicker">Item detail</p>
+          <h1>Product view</h1>
+          <p class="subtle">Single item data from the backend item endpoint.</p>
+        </div>
+        <a class="btn btn-secondary" href="/catalog" data-link>Back to catalog</a>
+      </div>
+
+      ${content}
+    </section>
+  `;
+}
+
+async function renderItemDetail() {
+  const id = itemIdFromPath();
+
+  if (!Number.isInteger(id) || id < 1) {
+    renderItemDetailShell(`
+      <div class="panel empty-state">
+        <h2>Item not found</h2>
+        <p class="subtle">Open an item from the catalog to see its details.</p>
+      </div>
+    `);
+    return;
+  }
+
+  renderItemDetailShell('<div class="panel loading-block">Loading item...</div>');
+
+  try {
+    const item = await api(`/items/${id}`);
+    const createdDate = item.created_at
+      ? new Date(item.created_at).toLocaleDateString('id-ID')
+      : '-';
+
+    renderItemDetailShell(`
+      <div class="detail-layout">
+        <section class="panel item-detail-hero">
+          <div class="item-art detail-art" aria-hidden="true">
+            <span class="item-initials">${escapeHtml(itemInitials(item.name))}</span>
+          </div>
+          <div>
+            <p class="kicker">ID ${Number(item.id)}</p>
+            <h1>${escapeHtml(item.name)}</h1>
+            <p class="price detail-price">${money(item.price)}</p>
+            <div class="stock-row">
+              <span class="badge ${stockClass(item.stock)}">${Number(item.stock)} in stock</span>
+              <span class="badge">Created ${escapeHtml(createdDate)}</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel profile-card">
+          <h2>Inventory summary</h2>
+          <div class="details-list">
+            <div class="detail"><span>Item ID</span><span>${Number(item.id)}</span></div>
+            <div class="detail"><span>Unit price</span><span>${money(item.price)}</span></div>
+            <div class="detail"><span>Available stock</span><span>${Number(item.stock)}</span></div>
+            <div class="detail"><span>Stock value</span><span>${money(Number(item.price) * Number(item.stock))}</span></div>
+          </div>
+        </aside>
+      </div>
+    `);
+  } catch (error) {
+    renderItemDetailShell(`
+      <div class="panel empty-state">
+        <h2>Item unavailable</h2>
+        <p class="subtle">${escapeHtml(error.message)}</p>
+      </div>
+    `);
+  }
+}
+
+function numberValue(value) {
+  return Number(value || 0);
+}
+
+function compactDate(value) {
+  return new Intl.DateTimeFormat('id-ID', {
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function renderReportsShell(content) {
+  app.innerHTML = `
+    <section>
+      <div class="section-head">
+        <div>
+          <p class="kicker">Reports</p>
+          <h1>Store reports</h1>
+          <p class="subtle">Sales summaries from the backend report endpoints.</p>
+        </div>
+        <button class="btn btn-secondary" type="button" id="refreshReports">Refresh</button>
+      </div>
+
+      ${content}
+    </section>
+  `;
+}
+
+function rowList(rows) {
+  return rows.join('') || '<p class="subtle">No data yet.</p>';
+}
+
+async function renderReports() {
+  renderReportsShell('<div class="panel loading-block">Loading reports...</div>');
+
+  try {
+    const [topUsers, itemsSold, monthlySales] = await Promise.all([
+      api('/reports/top-users'),
+      api('/reports/items-sold'),
+      api('/reports/monthly-sales'),
+    ]);
+
+    const totalRevenue = itemsSold.reduce((sum, item) => sum + numberValue(item.total_revenue), 0);
+    const totalSold = itemsSold.reduce((sum, item) => sum + numberValue(item.total_quantity_sold), 0);
+    const paidTransactions = monthlySales.reduce((sum, row) => sum + numberValue(row.transaction_count), 0);
+    const maxRevenue = Math.max(...itemsSold.map((item) => numberValue(item.total_revenue)), 1);
+
+    const topUserRows = topUsers.slice(0, 5).map((user) => `
+      <div class="report-row">
+        <span>#${Number(user.rank)} ${escapeHtml(user.name)}</span>
+        <strong>${money(user.total_spent)}</strong>
+      </div>
+    `);
+
+    const itemRows = itemsSold.map((item) => {
+      const width = Math.max(6, Math.round((numberValue(item.total_revenue) / maxRevenue) * 100));
+      return `
+        <div class="report-item">
+          <div class="report-row">
+            <span>${escapeHtml(item.name)}</span>
+            <strong>${money(item.total_revenue)}</strong>
+          </div>
+          <div class="report-bar" aria-hidden="true"><span style="width:${width}%"></span></div>
+          <p class="hint">${numberValue(item.total_quantity_sold)} sold - ${numberValue(item.stock)} left</p>
+        </div>
+      `;
+    });
+
+    const monthRows = monthlySales.map((row) => `
+      <div class="report-row">
+        <span>${compactDate(row.month)}</span>
+        <strong>${money(row.total_revenue)}</strong>
+      </div>
+    `);
+
+    renderReportsShell(`
+      <div class="metric-grid">
+        <section class="panel metric-card">
+          <span>Total revenue</span>
+          <strong>${money(totalRevenue)}</strong>
+        </section>
+        <section class="panel metric-card">
+          <span>Items sold</span>
+          <strong>${totalSold}</strong>
+        </section>
+        <section class="panel metric-card">
+          <span>Paid transactions</span>
+          <strong>${paidTransactions}</strong>
+        </section>
+      </div>
+
+      <div class="reports-grid">
+        <section class="panel report-card">
+          <h2>Top users</h2>
+          ${rowList(topUserRows)}
+        </section>
+        <section class="panel report-card report-card-wide">
+          <h2>Items sold</h2>
+          ${rowList(itemRows)}
+        </section>
+        <section class="panel report-card">
+          <h2>Monthly sales</h2>
+          ${rowList(monthRows)}
+        </section>
+      </div>
+    `);
+  } catch (error) {
+    renderReportsShell(`
+      <div class="panel empty-state">
+        <h2>Reports unavailable</h2>
+        <p class="subtle">${escapeHtml(error.message)}</p>
+      </div>
+    `);
+  }
 }
 
 function renderProfile() {
@@ -372,6 +573,8 @@ async function render() {
 
   if (active === 'login') renderLogin();
   if (active === 'register') renderRegister();
+  if (active === 'reports') await renderReports();
+  if (active === 'item-detail') await renderItemDetail();
   if (active === 'profile') renderProfile();
   if (active === 'catalog') await renderCatalog();
 
@@ -392,6 +595,11 @@ document.addEventListener('click', (event) => {
 
   if (event.target.id === 'refreshItems') {
     renderCatalog(true);
+    return;
+  }
+
+  if (event.target.id === 'refreshReports') {
+    renderReports();
     return;
   }
 
