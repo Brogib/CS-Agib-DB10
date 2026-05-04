@@ -368,7 +368,14 @@ h3 {
   display: flex;
   min-height: 318px;
   flex-direction: column;
+  color: inherit;
   overflow: hidden;
+  text-decoration: none;
+}
+
+.item-card:hover {
+  border-color: #bcc8d8;
+  transform: translateY(-2px);
 }
 
 .item-art {
@@ -464,6 +471,104 @@ h3 {
   text-align: center;
 }
 
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.item-detail-hero {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 24px;
+}
+
+.detail-art {
+  min-height: 220px;
+  border-radius: 8px;
+}
+
+.detail-price {
+  margin: 16px 0;
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  padding: 20px;
+}
+
+.metric-card span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.metric-card strong {
+  color: var(--primary-dark);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.report-card {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.report-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.report-row span {
+  color: #344155;
+  font-weight: 800;
+}
+
+.report-row strong {
+  color: var(--primary-dark);
+  white-space: nowrap;
+}
+
+.report-item {
+  display: grid;
+  gap: 8px;
+}
+
+.report-bar {
+  height: 8px;
+  overflow: hidden;
+  background: #edf3f7;
+  border-radius: 999px;
+}
+
+.report-bar span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: inherit;
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -553,7 +658,13 @@ h3 {
   }
 
   .auth-layout,
+  .detail-layout,
   .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .item-detail-hero,
+  .reports-grid {
     grid-template-columns: 1fr;
   }
 
@@ -561,6 +672,7 @@ h3 {
     min-height: auto;
   }
 
+  .metric-grid,
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -579,6 +691,7 @@ h3 {
   }
 
   .auth-stat-row,
+  .metric-grid,
   .toolbar,
   .grid {
     grid-template-columns: 1fr;
