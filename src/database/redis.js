@@ -9,14 +9,19 @@ function createRedisClient() {
 
   try {
     const redis = require("redis");
-    client = redis.createClient({
-      socket: {
-        host: process.env.REDIS_HOST || "127.0.0.1",
-        port: Number(process.env.REDIS_PORT) || 6379,
-        connectTimeout: 750,
-        reconnectStrategy: false,
-      },
-    });
+
+    const options = process.env.REDIS_URL
+      ? { url: process.env.REDIS_URL }
+      : {
+          socket: {
+            host: process.env.REDIS_HOST || "127.0.0.1",
+            port: Number(process.env.REDIS_PORT) || 6379,
+            connectTimeout: 750,
+            reconnectStrategy: false,
+          },
+        };
+
+    client = redis.createClient(options);
 
     client.on("error", (err) => {
       console.log("Redis Error:", err.message);
