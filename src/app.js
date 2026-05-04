@@ -57,7 +57,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-app.get(['/', '/login', '/register', '/catalog', '/profile'], (req, res) => {
+app.get(['/', '/login', '/register', '/catalog', '/catalog/:id', '/reports', '/profile'], (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
